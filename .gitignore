@@ -102,3 +102,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+retraction-tower/*.gcode
+retraction-tower/*.scad
+retraction-tower/*.stl
