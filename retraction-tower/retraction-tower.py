@@ -22,6 +22,9 @@ def createScad(options):
     f.write('bridge_thick = %f;\n' % (options.bridge_thick));
     f.write('span_width = %d;\n' % (options.bridge_span));
     f.write('level_height = %d;\n' % (options.level_height));
+    f.write('cone_bot_radius = %f;\n' % (options.cone_bot_radius));
+    f.write('cone_top_radius = %f;\n' % (options.cone_top_radius));
+    f.write('cone_height = %d;\n' % (options.cone_height));
 
     f.write("""
 width = 5;
@@ -43,25 +46,42 @@ module letter(l) {
 // Add one level of towers
 module add_level(x, level, label) {
   z = level * level_thick;
+  radius = width / 2;
+  platform_len = label_width + span_width + radius;
+
   // Rectangular labeled column
-  translate([x, 0, platform_thick + z + level_height / 2]) difference() {
+  label_cx = x + label_width / 2;
+  translate([label_cx, 0, platform_thick + z + level_height / 2]) difference() {
     color("blue") cube([label_width, width, level_height], center = true);
     translate([0, -o, 0]) rotate([90, 0, 0]) letter(label);
   };
 
   // Cylinder column at other end
-  radius = width / 2;
-  translate([x + span_width + width, 0, z + platform_thick]) cylinder(level_height + bridge_thick, radius, radius);
+  cyl_x = x + label_width + span_width + radius;
+  translate([cyl_x, 0, z + platform_thick]) cylinder(level_height + bridge_thick, radius, radius);
+
+  // Cone in middle
+  if (cone_height > 0) {
+    // Size of gap between label box and cylinder
+    gap = span_width;
+    // Pick x to center cone in gap space
+    cone_cx = x + label_width + (gap / 2);
+    translate([cone_cx, 0, z + platform_thick]) cylinder(cone_height, cone_bot_radius, cone_top_radius);
+  }
 
   // Optional bridge platform across
-  platform_len = label_width + span_width;
-  if (bridge_thick > 0) translate([-label_width / 2, -width / 2, z + level_height + platform_thick]) cube([platform_len, width, bridge_thick], false);
+  if (bridge_thick > 0) {
+    // -label_width / 2, -width / 2
+    bridge_cx = x; //platform_len / 2;
+    translate([bridge_cx, -width / 2, z + level_height + platform_thick]) cube([platform_len, width, bridge_thick], false);
+  }
 }
 
 // Add base plate
-platform_len = label_width + span_width + width;
-platform_w = width * 1.5;
-translate([-(label_width + width / 2) / 2 , -platform_w / 2, 0]) cube([platform_len, platform_w, platform_thick], false);
+margin = width / 4;
+platform_w = width + margin * 2;
+platform_len = label_width + span_width + width + margin * 2;
+translate([-margin, -platform_w / 2, 0]) cube([platform_len, platform_w, platform_thick], false);
 
 """)
 
@@ -128,12 +148,20 @@ parser.add_argument('--levels', type=int, default=7,
                     help='Number levels in tower (count)')
 parser.add_argument('--level-height', type=float, default=7.2,
                     help='Height of each column in level (mm)')
+parser.add_argument('--cone-bot-radius', type=float, default=2.5,
+                    help='Radius of cone at bottom (mm)')
+parser.add_argument('--cone-top-radius', type=float, default=0.0,
+                    help='Radius of cone at top (mm)')
+parser.add_argument('--cone-height', type=float, default=7.2,
+                    help='Height of each cone in level (mm)')
 parser.add_argument('--base-thick', type=float, default=1.2,
                     help='Base thickness (mm)')
 parser.add_argument('--bridge-span', type=float, default=10.0,
                     help='Bridge span between columns (mm)')
 parser.add_argument('--bridge-thick', type=float, default=0.6,
                     help='Bridge layer thickness (mm - 0 disables)')
+parser.add_argument('--stl', type=int, default=1,
+                    help='Create STL output (1 yes, 0 no)')
 parser.add_argument('--feed-rate', type=int, default=None,
                     help='Retract feed rate (mm per minute - omit to leave alone)')
 parser.add_argument('--z-lift', type=float, default=None,
@@ -145,4 +173,5 @@ options = parser.parse_args()
 
 createScad(options)
 createGcode(options)
-createStl(options)
+if (options.stl == 1):
+    createStl(options)
