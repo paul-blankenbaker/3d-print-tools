@@ -1,0 +1,14 @@
+div.holeTool {
+    margin: 5mm;
+}
+
+label.holeTool {
+    padding-left: 5mm;
+    padding-right: 2mm;
+    display: inline-block;
+}
+
+input[type=number].holeTool {
+    width: 6em;
+    text-align: right;
+}
