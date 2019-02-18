@@ -312,8 +312,16 @@ function create3WireOutHoles(wd, l, midTrim) {
   );
 }
 
-function addMountTabs(obj, w, l, h) {
-  const r = m5_bolt_hole.r;
+/**
+ * Adds two mounting tabs with holes for bolts to object.
+ * 
+ * @param obj Object to add mounting tabs to.
+ * @param w Offset from center in x-axis for two mounting holes.
+ * @param l Length of object to add mounting tabs to.
+ * @param h Thickness of mounting tabs.
+ * @param r Radius of hole to put mounting bolt through.
+ */
+function addMountTabs(obj, w, l, h, r) {
   const rOut = r * 2.5;
 
   const withTabs = union(
@@ -329,21 +337,32 @@ function addMountTabs(obj, w, l, h) {
   );
 }
 
-function createCover(w, l, h) {
-  const r = 1.5;
+/**
+ * Creates solid rectangular block with mounting holes centered on sides.
+ * 
+ * @param w Width of cover.
+ * @param l Length of sides of cover.
+ * @param h Height (thickness of cover).
+ * @param r Radius of hole to put mounting bolt through (0 to disable).
+ */
+function createCover(w, l, h, r) {
   const c = [true, false, false];
   const lid = cube({ "size": [w, l, h], "center": c });
-
-  return addMountTabs(lid, w, l, h);
+  if (r <= 0) {
+    return lid;
+  }
+  return addMountTabs(lid, w, l, h, r);
 }
 
-function createBottom(w, l, h) {
-  const c = [true, false, false];
-  const bot = cube({ "size": [w, l, h], "center": c });
-
-  return addMountTabs(bot, w, l, h);
-}
-
+/**
+ * Creates bolt hole cutouts to fasten two covers together so that nuts are counter sunk.
+ * 
+ * @param boltHole Bolt hole dimensions to use for cutout.
+ * @param w Width of cover.
+ * @param l Length of sides of cover.
+ * @param yOfs Offset on y-axis that cover has been shifted.
+ * @param zOfs How much to raise or lower bolt holes on z-axis.
+ */
 function layoutBolts(boltHole, w, l, yOfs, zOfs) {
   const bgap = 4;
   const bx = w / 2 - bgap;
@@ -365,26 +384,49 @@ function createAlign(w, h, xofs, yofs, zofs) {
   );
 }
 
+/**
+ * Main entry point.
+ */
 function main() {
+  // Begin tweakable parameters
+
+  // Width of rectangle to hold sensor
+  const boxW = 27;
+
+  // Height of rectangle to hold sensor
+  const boxL = 28;
+
+  // Thickness of two plates that sandwich the sensor
+  // (should be slightly longer than hardware bolt length)
+  const boxT = 5.25;
+
+  // Thickness of top plate
+  const topT = 2.0;
+
+  // How much to counter sink nut
+  const nutSink = Math.max(m2_5_nut_hole.h, boxT - topT - 1);
+
+  // Hardware information for bolts and nuts to fasten two plates together
+  const boltParams = m2_5_pan({ "h": boxT, "sink": { "head": 0, "nut": nutSink } });
+
+  // Radius of two bolts used to mount assembled sensor to robot
+  // set to 0 to disable mounting tabs
+  //const mountBoltRadius = 0.0;
+  const mountBoltRadius = m5_bolt_hole.r;
+
+  // End tweakable parameters
   const cenX = [true, false, false];
   const len = 9;
   const wireOutLen = 12;
 
   const wg = 0.75;
   const wireGrab = cube({ "size": [10, 0.5, wg], "center": cenX });
-  const boxW = 27;
-  const boxL = 28;
-  const boxT = 5.25;
-  const topT = 2.0;
   const topOfs = 3.5;
   const boxZ = topOfs - boxT;
   const wgOfs = boxL - 10.5;
   const wgGap = 2.25;
   const boxOfs = -10;
 
-  const headSink = 0;
-  const nutSink = boxT - topT - 1;
-  const boltParams = m2_5_pan({ "h": boxT + headSink, "sink": { "head": headSink, "nut": nutSink } });
   const boltHole = hole_for_bolt(boltParams);
   const boltHoles = layoutBolts(boltHole, boxW, boxL, boxOfs, boxZ);
 
@@ -409,7 +451,7 @@ function main() {
     case 1: {
       const cover = union(
         difference(
-          createCover(boxW, boxL, topT).translate([0, boxOfs, topOfs - topT]),
+          createCover(boxW, boxL, topT, mountBoltRadius).translate([0, boxOfs, topOfs - topT]),
           cutout,
           cube({ "size": [1, 1, boxT], "center": cenX }).translate([0, -2.0, boxT - topOfs]),
           boltHoles
@@ -423,7 +465,7 @@ function main() {
     case 2: {
       const lid = union(
         difference(
-          createBottom(boxW, boxL, boxT - topT).translate([0, boxOfs, topOfs - boxT]),
+          createCover(boxW, boxL, boxT - topT, mountBoltRadius).translate([0, boxOfs, topOfs - boxT]),
           cutout,
           boltHoles,
           alignHoles
@@ -432,7 +474,7 @@ function main() {
         wireGrab.translate([0, wgOfs, 0])
       );
       // Trim off any wiregard that bumps into top cover
-      const trimmed = difference(lid, createCover(boxW, boxL, topT).translate([0, boxOfs, topOfs - topT]));
+      const trimmed = difference(lid, createCover(boxW, boxL, topT, mountBoltRadius).translate([0, boxOfs, topOfs - topT]));
 
       return trimmed;
     }
@@ -442,8 +484,8 @@ function main() {
       return boltHoles;
     default: {
       return union(
-        createCover(boxW, boxL, topT).translate([0, -10, topOfs - topT]),
-        createBottom(boxW, boxL, boxT - topT).translate([0, -10, topOfs - boxT])
+        createCover(boxW, boxL, topT, mountBoltRadius).translate([0, -10, topOfs - topT]),
+        createCover(boxW, boxL, boxT - topT, mountBoltRadius).translate([0, -10, topOfs - boxT])
       );
     }
   }
