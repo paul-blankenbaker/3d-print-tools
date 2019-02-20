@@ -255,7 +255,7 @@ class HallThroughHole {
     this.E = E;
     this.S = S;
     this.e1 = e1;
-    this.pinChannel = 1.0;
+    this.pinChannel = pinChannel;
   }
 
   render(pinChannelLen, pinChannelCenterLen) {
@@ -390,6 +390,15 @@ function createAlign(w, h, xofs, yofs, zofs) {
 function main() {
   // Begin tweakable parameters
 
+  // Select mode to render
+  // 0 - The cutout
+  // 1 - The final top piece of the cover
+  // 2 - The final bottom piece of the cover
+  // 3 - Single bolt hole
+  // 4 - All four bolt holes to fasten plates together
+  // 5 - A shifted intersection of plates to check vertical distances
+  const renderMode = 1;
+
   // Width of rectangle to hold sensor
   const boxW = 27;
 
@@ -401,7 +410,10 @@ function main() {
   const boxT = 5.25;
 
   // Thickness of top plate
-  const topT = 2.0;
+  const topT = 1.0;
+
+  // How close the sensor cutout should come to the top surface.
+  const sensorDistFromSurface = 0.25;
 
   // How much to counter sink nut
   const nutSink = Math.max(m2_5_nut_hole.h, boxT - topT - 1);
@@ -415,28 +427,52 @@ function main() {
   const mountBoltRadius = m5_bolt_hole.r;
 
   // End tweakable parameters
-  const cenX = [true, false, false];
-  const len = 9;
-  const wireOutLen = 12;
 
+  const hall = new HallThroughHole();
+  const cenX = [true, false, false];
+  const cenXY = [true, true, false];
+  const len = 9;
+  const wireOutLen = boxL - len - 7;
+
+  // Width and height for wire out tunnels
+  const wireW = 2.5;
+  const wireH = 2;
+
+  // Wire grab bars to clamp
   const wg = 0.75;
-  const wireGrab = cube({ "size": [10, 0.5, wg], "center": cenX });
-  const topOfs = 3.5;
-  const boxZ = topOfs - boxT;
+  const wgBarOfsX = wireW + 1.0;
+  const wireGrab = union(
+    cube({ "size": [wireW, wg, wg], "center": cenXY }).translate([-wgBarOfsX, 0, 0]),
+    cube({ "size": [wireW, wg, wg], "center": cenXY }),
+    cube({ "size": [wireW, wg, wg], "center": cenXY }).translate([+wgBarOfsX, 0, 0])
+  );
   const wgOfs = boxL - 10.5;
   const wgGap = 2.25;
+
+  // Z offset to bottom of top plate
+  const topOfs = boxT - topT;
+  // Z offset to bottom of bottom plate
+  const boxZ = 0;
+  // Thickness of bottom plate
+  const botT = boxT - topT;
+  // Y offset of cover plates
   const boxOfs = -10;
 
+  // Bolt hole coutouts to attach two plates together
   const boltHole = hole_for_bolt(boltParams);
   const boltHoles = layoutBolts(boltHole, boxW, boxL, boxOfs, boxZ);
 
-  const sensor = new HallThroughHole().render(3, len).translate([0, 0, 1.0]);
-  const resistorSlot = createResistorUSlot(len + 4, 12).translate([0, -7.5, 0]);
-  const wireOutHoles = create3WireOutHoles(2.5, wireOutLen, 2).translate([0, 7, 0]);
-  const sideChannel = cube({ "size": [4.5, 7, 2.75], "center": cenX });
-  const alignHoles = createAlign(3.25, boxT, 9, 8.5, boxZ);
-  const alignPegs = createAlign(3, boxT, 9, 8.5, boxZ);
+  // Alignment holes/pegs
+  const alignHoles = createAlign(3.25, boxT, 9, boxL - 18.5, boxZ);
+  const alignPegs = createAlign(3, boxT, 9, boxL - 18.5, boxZ);
 
+  // Hall effect, resistor and wire cutouts
+  const sensor = hall.render(3, len).translate([0, 0, 1.0]);
+  const resistorSlot = createResistorUSlot(len + 4, 12).translate([0, -7.5, 0]);
+  const wireOutHoles = create3WireOutHoles(wireW, wireOutLen, wireH).translate([0, 7, 0]);
+  const sideChannel = cube({ "size": [4.75, 7, 2.75], "center": cenX });
+
+  // Full cutout common to top and bottom cover plates
   const cutout = union(
     sensor,
     resistorSlot,
@@ -444,48 +480,74 @@ function main() {
     sideChannel.translate([+4.0, 1, 0]),
     wireOutHoles
   );
+  const cutoutZ = boxT - hall.E - 1 - sensorDistFromSurface;
 
-  switch (1) {
+  // Wire grab (clamping) bars in wire channels
+  const wgBotZ = cutoutZ;
+  const wgTopZ = wgBotZ + wireW - wg;
+  const wireGrabBot = union(
+    wireGrab.translate([0, wgOfs - wgGap * 2, wgBotZ]),
+    wireGrab.translate([0, wgOfs, wgBotZ])
+  );
+  const wireGrabTop = wireGrab.translate([0, wgOfs - wgGap, wgTopZ]);
+
+  // Cover plates
+  const topCover = createCover(boxW, boxL, topT, mountBoltRadius).translate([0, boxOfs, topOfs]);
+  const botCover = createCover(boxW, boxL, botT, mountBoltRadius).translate([0, boxOfs, 0]);
+
+  // Go generate desired rendering
+  switch (renderMode) {
     case 0:
+      // Just the cutout for sensor and resistor and wires
       return cutout;
+
     case 1: {
+      // The top cover plate fully rendered
       const cover = union(
         difference(
-          createCover(boxW, boxL, topT, mountBoltRadius).translate([0, boxOfs, topOfs - topT]),
-          cutout,
-          cube({ "size": [1, 1, boxT], "center": cenX }).translate([0, -2.0, boxT - topOfs]),
+          topCover,
+          cutout.translate([0, 0, cutoutZ]),
+          // Add small hole to mark where we want magnet to pass over sensor
+          cube({ "size": [1.5, 1.5, boxT], "center": cenX }).translate([0, -2.0, 0]),
           boltHoles
         ),
-        wireGrab.translate([0, wgOfs - wgGap, topOfs - wg - 0.75]),
+        wireGrabTop,
         alignPegs
       );
-
-      return cover;
+      // Trim off any wiregard that bumps into bottom cover
+      const trimmed = difference(cover, wireGrabBot);
+      return trimmed;
     }
+
     case 2: {
+      // The bottom cover plate fully rendered
       const lid = union(
         difference(
-          createCover(boxW, boxL, boxT - topT, mountBoltRadius).translate([0, boxOfs, topOfs - boxT]),
-          cutout,
+          botCover,
+          cutout.translate([0, 0, cutoutZ]),
           boltHoles,
           alignHoles
         ),
-        wireGrab.translate([0, wgOfs - wgGap * 2, 0]),
-        wireGrab.translate([0, wgOfs, 0])
+        wireGrabBot
       );
       // Trim off any wiregard that bumps into top cover
-      const trimmed = difference(lid, createCover(boxW, boxL, topT, mountBoltRadius).translate([0, boxOfs, topOfs - topT]));
-
+      const trimmed = difference(lid, wireGrabTop);
       return trimmed;
     }
+
     case 3:
+      // A single bolt hole
       return boltHole;
+
     case 4:
+      // All 4 bolt holes for attaching two plates together
       return boltHoles;
+
     default: {
+      // Debug rendering to check vertical alignment
       return union(
-        createCover(boxW, boxL, topT, mountBoltRadius).translate([0, -10, topOfs - topT]),
-        createCover(boxW, boxL, boxT - topT, mountBoltRadius).translate([0, -10, topOfs - boxT])
+        topCover,
+        botCover
       );
     }
   }
