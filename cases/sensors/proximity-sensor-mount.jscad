@@ -53,7 +53,7 @@ const mountingHoles = 4;
 
 // Use these to set hole spacing and offset from end
 const proximitySensorSpacing = 20;
-const proximityEndMargin = 5;
+const proximityEndMargin = (25 - proximitySensorDiameter) / 2;
 
 // NOTE: If you make it such that the mounting hole
 // spacing is not an even multiple of the proximity
@@ -113,6 +113,9 @@ const lWidth = Math.floor(lMountHoleDiameter * 2.5 + 1);
 // How far below top surface to cut out slot for nut
 const lSlotSink = 4;
 
+// How far from robot center of sensor should be on a side mount
+const sideMountCenter = 30;
+
 // For centering on X or X/Y axis
 const cenX = [ true, false, false ];
 const cenXY = [ true, true, false ];
@@ -154,6 +157,12 @@ function hex_slot(r, l, h) {
   let p = polygon(hex_slot_points(r, l));
   let volume = linear_extrude({ height: h }, p);
   return volume;
+}
+
+// Creates a long triangular gusset
+function createGusset(l, h) {
+  let p = [ [ 0, 0], [ 0, h ], [ h, 0 ] ];
+  return linear_extrude({ height: l }, polygon(p));
 }
 
 /**
@@ -290,27 +299,48 @@ function createProximityMount(raise) {
 function createSideMount() {
   // Total length of mount
   const totalLength = proximitySensorSpacing * (proximitySensorHoles - 1) + proximitySensorDiameter + 2 * proximityEndMargin;
-  const railX = (proximityPlateWidth / 2.0) + lThick;
+  let railX = (proximityPlateWidth / 2.0) + lThick;
 
   // Create plate for attaching proximity sensor
   let proximityPlate = createProximityPlate();
-  const sideH = lWidth + lThick;
 
   // Create side rail for mounting bolts/zip ties
+  const sideH = lWidth + lThick;
   let boltRail = cube({ "size": [lThick, totalLength, sideH]});
 
-  // Cut out hole(s) for mounting bolts/zip ties
+  // Cut out hole(s) for mounting L bracket to robot
+  const n = Math.floor((lLength - lMountHoleDiameter) / lMountHoleSpacing + 0.5);
   const zOfs = sideH - mountHoleDiameter - mountingHoleEndMargin;
-  for (let i = 0; i < mountingHoles; i++) {
-    const r = mountHoleDiameter / 2.0;
+  const lOfs = (lLength - ((n - 1) * lMountHoleSpacing + lMountHoleDiameter)) / 2;
+
+  for (let i = 0; i < n; i++) {
+    const r = lMountHoleDiameter / 2.0;
     const h = lThick;
-    const yOfs = mountingHoleEndMargin + r + (i * mountingHoleSpacing);
-    const boltHole = cylinder({ "r": r, "h": h, "center": cenXY }).rotateY(90).translate([0, yOfs, zOfs]);
+    const yOfs = lOfs + r + (i * lMountHoleSpacing);
+    const boltHole = cylinder({ "r": r, "h": h, "center": cenX }).rotateY(90).translate([0, yOfs, zOfs]);
     boltRail = difference(boltRail, boltHole);
+  }
+
+  const gusset = createGusset(totalLength, lThick).rotateX(90).translate([lThick, totalLength, proximityPlateThick]);
+
+  // See if we need to extend the sensor out farther
+  const sideMountExtend = sideMountCenter - railX;
+  if (sideMountExtend > 0) {
+    railX += sideMountExtend;
+    // See if hole is extended from side
+    let extension = cube({ "size": [ sideMountExtend, totalLength, proximityPlateThick] }); //, "center": cenX });
+    const mount = union(
+      boltRail,
+      gusset,
+      extension.translate([lThick, 0, 0]),
+      proximityPlate.translate([railX, 0, 0])
+    );
+    return mount;
   }
   
   const mount = union(
     boltRail,
+    gusset,
     proximityPlate.translate([railX, 0, 0])
   );
   return mount;
