@@ -317,7 +317,7 @@ function createSideMount() {
     const r = lMountHoleDiameter / 2.0;
     const h = lThick;
     const yOfs = lOfs + r + (i * lMountHoleSpacing);
-    const boltHole = cylinder({ "r": r, "h": h, "center": cenX }).rotateY(90).translate([0, yOfs, zOfs]);
+    const boltHole = cylinder({ "r": r, "h": h, "center": cenXY }).rotateY(90).translate([0, yOfs, zOfs]);
     boltRail = difference(boltRail, boltHole);
   }
 
