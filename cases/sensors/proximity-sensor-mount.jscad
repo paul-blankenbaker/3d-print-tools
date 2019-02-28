@@ -31,7 +31,7 @@
 // 2 - Sinle L-bracket to bolt flat plate to.
 // 3 - Two joined L-brackets to bolt flat plate to.
 // 4 - Single piece side mount (mounting holes perpendicular to sensor)
-const render = 4;
+const render = 3;
 
 // Use calipers to measure outside diameter of proximity
 // sensor that needs to pass through the hole and add
@@ -46,7 +46,7 @@ const mountHoleDiameter = 2 * 1.525; // M2.5
 // const mountHoleDiameter = 2 * 2.825; // M5
 
 // How many holes and spacing between hole centers for proximity sensor
-const proximitySensorHoles = 1;
+const proximitySensorHoles = 2;
 
 // How many mount holes for bolts/zip ties on outside
 const mountingHoles = 4;
@@ -107,7 +107,7 @@ const nutR = (nutWidth / 2) / Math.cos(30 * Math.PI / 180.0);
 // const lMountHoleDiameter = 2 * 2.325; // M4
 const lMountHoleDiameter = 2 * 2.825; // M5
 const lMountHoleSpacing = Math.floor(lMountHoleDiameter * 1.5 + 1);
-const lLength = proximitySensorSpacing + 2 * proximityEndMargin;
+const lLength = proximitySensorHoles * proximitySensorSpacing + 2 * proximityEndMargin;
 const lThick = 3;
 const lWidth = Math.floor(lMountHoleDiameter * 2.5 + 1);
 // How far below top surface to cut out slot for nut
@@ -184,7 +184,7 @@ function createL() {
     const nutZ = h - lSlotSink - nutHeight;
     const boltHole = cylinder({ "r": r, "h": h, "center": cenXY }).translate([0, yOfs, 0]);
     
-    const nutSlot = hex_slot(nutR, boltRailWidth, nutHeight).translate([0, yOfs, nutZ]);
+    const nutSlot = hex_slot(nutR, boltRailWidth, nutHeight).rotateY(180).translate([0, yOfs, nutZ]);
 
     rail = difference(rail, boltHole, nutSlot);
   }
@@ -221,7 +221,7 @@ function createBasePlate() {
   let connector = cube({ "size": [cw, lThick, ch], "center": cenX });
   return union(
     createL(),
-    createL().rotateZ(180).translate([-(boltRailWidth + proximityPlateWidth), lLength, 0]),
+    createL().mirroredX().translate([-(boltRailWidth + proximityPlateWidth), lLength * 0, 0]),
     connector.translate([cxOfs, 0, 0]),
     connector.translate([cxOfs, lLength - lThick, 0])
     );
