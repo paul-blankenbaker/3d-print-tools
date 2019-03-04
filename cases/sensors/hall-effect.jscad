@@ -403,20 +403,23 @@ function main() {
   const boxW = 27;
 
   // Height of rectangle to hold sensor
-  const boxL = 28;
+  const boxL = 30;
 
   // Thickness of two plates that sandwich the sensor
   // (should be slightly longer than hardware bolt length)
   const boxT = 5.25;
 
   // Thickness of top plate
-  const topT = 1.0;
+  const topT = 1.5;
 
   // How close the sensor cutout should come to the top surface.
   const sensorDistFromSurface = 0.25;
 
+  // How long of bolts you are using
+  const boltLength = 5.0;
+
   // How much to counter sink nut
-  const nutSink = Math.max(m2_5_nut_hole.h, boxT - topT - 1);
+  const nutSink = Math.max(m2_5_nut_hole.h, (boxT - boltLength) + m2_5_nut_hole.h + .25);
 
   // Hardware information for bolts and nuts to fasten two plates together
   const boltParams = m2_5_pan({ "h": boxT, "sink": { "head": 0, "nut": nutSink } });
@@ -446,7 +449,7 @@ function main() {
     cube({ "size": [wireW, wg, wg], "center": cenXY }),
     cube({ "size": [wireW, wg, wg], "center": cenXY }).translate([+wgBarOfsX, 0, 0])
   );
-  const wgOfs = boxL - 10.5;
+  const wgOfs = boxL - (10 + wg / 2);
   const wgGap = 2.25;
 
   // Z offset to bottom of top plate
@@ -463,8 +466,8 @@ function main() {
   const boltHoles = layoutBolts(boltHole, boxW, boxL, boxOfs, boxZ);
 
   // Alignment holes/pegs
-  const alignHoles = createAlign(3.25, boxT, 9, boxL - 18.5, boxZ);
-  const alignPegs = createAlign(3, boxT, 9, boxL - 18.5, boxZ);
+  const alignHoles = createAlign(3.25, boxT, 9, boxL - 20, boxZ);
+  const alignPegs = createAlign(3, boxT, 9, boxL - 20, boxZ);
 
   // Hall effect, resistor and wire cutouts
   const sensor = hall.render(3, len).translate([0, 0, 1.0]);
