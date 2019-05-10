@@ -35,7 +35,7 @@ class Labels {
 class ResistorLabels {
   constructor() {
     /** Width of entire draw area in mm. */
-    this.width = 165;
+    this.width = 182;
     /** Height of entire draw area in mm. */
     this.height = 220;
     /** Single label height in mm. */
@@ -46,7 +46,7 @@ class ResistorLabels {
     this.labelStyle = "font-weight: bold; font-size: 1.25mm; font-family: sans-serif";
 
     /** Set to true to wrap around and fill entire area. */
-    this.fill = false;
+    this.fill = true;
     
     /** Set to value larger than 0 draw resitor colors above labels.
      * NOTE: If you set this to true, it only works if your on lables
@@ -62,18 +62,25 @@ class ResistorLabels {
     /** The text to appear on labels. Duplicates will appear as needed
      * to fill the entire draw area. */
     this.labels = [
-      "1.25\u2126", "18.25", "2.75M", "37.5K",
-      "1R", "4R7", "7R5",
-      "10R", "18R", "22R", "24R", "30R", "36R", "39R", "43R", "47R",
-      "51R", "62R", "68R", "75R", "91R",
-      "120R", "300R", "390R", "470R", "510R", "620R", "750R",
-      "100R", "150R", "220R", "330R", "680R",
-      "1K", "1K5", "3K", "3K6", "4K3", "5K1", "6K8",
-      "1K8", "2K2", "3K3", "3K9", "4K7", "5K6", "8K2",
-      "10K",
-      "100K"
+      // Miscellaneous
+      "dRd", "ddR", "dddR", "dKd", "ddK", "dddK", "dMd", "ddM", "", "",
+      "0R", // SMD only
+      "1R", "4R7", "7R5", "", "", "", "", "", "",
+      // "22R", "39R", "47R", "68R", // SMD only
+      "10R", "18R", "24R", "30R", "36R", "43R", "51R", "62R", "75R", "91R",
+      // "", "", "", "", "", "", "", "",
+      // "100R", "150R", "220R", "330R", "680R", // SMD only
+      "120R", "270R", "300R", "390R", "470R", "510R", "620R", "750R", "", "",
+      // "1K8", "3K3", "3K9", "4K7", "5K6", // SMD only
+      "1K", "1K5", "2K2", "3K", "3K6", "4K3", "5K1", "6K8", "8K2", "",
+      // "12K", "22K", "33K", "39K", "47K", "56K", "68K", // SMD only
+      "10K", "15K", "20K", "30K", "36K", "43K", "51K", "62K", "75K", "",
+      // "120K", "180K", "220K", "270K", "330K", "390K", "470K", "560K", "680K", // SMD only
+      "100K", "150K", "200K", "240K", "300K", "360K", "430K", "510K", "620K", "750K",
+      // "2.2M", "3.3M", "4.7M", "10M", // SMD only
+      "1M", "", "", "", "", "", "", "", "", ""
     ];
-
+    /*
     this.labels = ResistorLabels.getE12SeriesShorthand({
       "precision": this.showResistor,
       "startPow": 0,
@@ -81,6 +88,7 @@ class ResistorLabels {
       "includeEnd": true,
       "includeZero": true
     });
+    */
 
   }
 
@@ -368,6 +376,10 @@ class ResistorLabels {
   addLabel(drawing, labelText, xofs, yofs) {
     let lw = this.labelWidth;
     let lh = this.labelHeight;
+    const rval = ResistorLabels.getResistorValue(labelText);
+    const rvalValid = !isNaN(rval);
+    const drawResistor = (this.showResistor > 0) && rvalValid;
+    
     let g = drawing.appendElement("g", {
       "transform": "translate(" + xofs + ", " + yofs + ")"
     });
@@ -379,7 +391,7 @@ class ResistorLabels {
     });
     g.appendChild(r);
     let y = (lh / 2);
-    if (this.showResistor > 0) {
+    if (drawResistor) {
       y = y + (this.resistorHeight * 0.5);
     }
     
@@ -392,17 +404,14 @@ class ResistorLabels {
     text.appendChild(document.createTextNode(labelText));
     g.appendChild(text);
 
-    if (this.showResistor > 0) {
-      let rval = ResistorLabels.getResistorValue(labelText);
-      if (rval !== NaN) {
-        let rindexes = ResistorLabels.getResistorIndexes(rval, this.showResistor);
-        let rw = this.resistorWidth;
-        let rh = this.resistorHeight;
-        let xofs = ((lw - rw) / 2);
-        let yofs = 1;
-        let gres = this.createResistorSvg(drawing, xofs, yofs, rindexes, rw, rh);
-        g.appendChild(gres);
-      }
+    if (drawResistor) {
+      let rindexes = ResistorLabels.getResistorIndexes(rval, this.showResistor);
+      let rw = this.resistorWidth;
+      let rh = this.resistorHeight;
+      let xofs = ((lw - rw) / 2);
+      let yofs = 1;
+      let gres = this.createResistorSvg(drawing, xofs, yofs, rindexes, rw, rh);
+      g.appendChild(gres);
     }
     /*
     drawing.appendElement('circle', {
