@@ -1,0 +1,49 @@
+// Remix of Smart compact temperature calibration tower by gaaZolee
+// This OpenSCAD script uses the components in original design to generate a parametrizable tower (tmin, tmax, tstep)
+//
+// V2. 2018-08-19
+// - Original SmartTemperatureTower_Stand.stl had some issue and is now fixed using Netfabb service. New stand file is SmartTemperatureTower_Stand_fixed.stl 
+// - The temperature number is now removed from the "floor" STL-file and does not need to be hidden in the SCAD code. New floor STL is SmartTemperatureTower_TempFloor.stl.
+// Big thanks to feedback on the first release - especially tkris_sd and steelfab.
+
+// Pertti Tolonen 2018
+
+// Configure the min&max temp + floor-to-floor temp step
+// tmin=175;
+TMIN
+// tmax=225;
+TMAX
+// tstep=5;
+STEP
+
+// Instantiate the "base" and move it to origin
+translate([-113,-100,0])
+
+// import("temperature-tower-base.stl");
+BASE
+
+// Define module for the "floor"
+module TempFloor(temp){
+difference(){
+union(){
+    translate([-113,-100,0]) // move to origin
+//import("temperature-tower-block.stl");
+BLOK
+
+}
+// Add parametrized text
+rotate([90,0,0])
+    translate([12,1,-0.5])
+linear_extrude(height=1,center=false)
+text(str(temp),size=3);
+}
+}
+
+// The top-level code
+floors=(tmax-tmin)/tstep; // Calculate # floors (signs cancel out)
+union(){
+for(i=[0:(floors)]){
+    translate([0,0,1.4+10*i])
+TempFloor(str(tmin+i*tstep));
+}
+}
