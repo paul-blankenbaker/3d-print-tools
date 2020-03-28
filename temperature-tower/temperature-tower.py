@@ -114,8 +114,8 @@ def createGcode(bot, top, step):
 ; 'Printer Settings', 'Custom G-code' panel
 """);
     for t in range(bot, top + step, step):
-        gcode = "{{{0} layer_z=={1}}}\n; T tower block {2} - {3}C\nM104 S{3}\n"
-        out = gcode.format(cond, z, floor, t);
+        gcode = "{{{0} layer_z>={1} and layer_z<{2}}}\n; T tower block {3} - {4}C\nM104 S{4}\n"
+        out = gcode.format(cond, z, z + 10, floor, t);
         f.write(out)
         floor += 1
         z += 10
