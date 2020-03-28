@@ -246,38 +246,7 @@ class ResistorLabels extends Labels {
 
     /** The text to appear on labels. Duplicates will appear as needed
      * to fill the entire draw area. */
-    this.labels = ResistorLabels.AMAZON_PACK;
-
-/*    
-    this.labels = [
-      // Miscellaneous
-      "dRd", "ddR", "dddR", "dKd", "ddK", "dddK", "dMd", "ddM", "", "",
-      "0R", // SMD only
-      "1R", "4R7", "7R5", "", "", "", "", "", "",
-      // "22R", "39R", "47R", "68R", // SMD only
-      "10R", "18R", "24R", "30R", "36R", "43R", "51R", "62R", "75R", "91R",
-      // "", "", "", "", "", "", "", "",
-      // "100R", "150R", "220R", "330R", "680R", // SMD only
-      "120R", "270R", "300R", "390R", "470R", "510R", "620R", "750R", "", "",
-      // "1K8", "3K3", "3K9", "4K7", "5K6", // SMD only
-      "1K", "1K5", "2K2", "3K", "3K6", "4K3", "5K1", "6K8", "8K2", "",
-      // "12K", "22K", "33K", "39K", "47K", "56K", "68K", // SMD only
-      "10K", "15K", "20K", "30K", "36K", "43K", "51K", "62K", "75K", "",
-      // "120K", "180K", "220K", "270K", "330K", "390K", "470K", "560K", "680K", // SMD only
-      "100K", "150K", "200K", "240K", "300K", "360K", "430K", "510K", "620K", "750K",
-      // "2.2M", "3.3M", "4.7M", "10M", // SMD only
-      "1M", "", "", "", "", "", "", "", "", ""
-    ];
-*/
-    /*
-    this.labels = ResistorLabels.getE12SeriesShorthand({
-      "precision": this.resistorBands,
-      "startPow": 0,
-      "endPow": 9,
-      "includeEnd": true,
-      "includeZero": true
-    });
-    */
+    this.labels = this.quickPickIndexToArray(0);
 
   }
 
@@ -700,10 +669,30 @@ class ResistorLabels extends Labels {
   applyEditorValues() {
     let editor = this.getEditor();
 
+    let labelsOk = false;
+    let newLabels = null;
+    try {
+      newLabels = JSON.parse(this.labelsWidget.value);
+      labelsOk = Array.isArray(newLabels) && (newLabels.length > 0);
+    } catch (ignore) {
+    }
+
+    if (labelsOk) {
+      this.labelsWidget.classList.remove("bad");
+      this.labels = newLabels;
+    } else {
+      this.labelsWidget.classList.add("bad");
+      return;
+    }
+    
     this.width = parseFloat(this.widthWidget.value);
     this.height = parseFloat(this.heightWidget.value);
     this.labelWidth = parseFloat(this.labelWidthWidget.value);
     this.labelHeight = parseFloat(this.labelHeightWidget.value);
+    this.resistorShow = this.resistorShowWidget.checked;
+    this.resistorBands = parseInt(this.resistorBandsWidget.value);
+    this.resistorWidth = parseFloat(this.resistorWidthWidget.value);
+    this.resistorHeight = parseFloat(this.resistorHeightWidget.value);
     
     const list = editor.childNodes;
     for (let i = list.length - 1; i > 1; i--) {
@@ -711,6 +700,41 @@ class ResistorLabels extends Labels {
     }
 
     editor.appendChild(this.createWidget());
+  }
+
+  quickPickIndexToArray(index) {
+    const params = {
+      "precision": this.resistorBands,
+      "startPow": 0,
+      "endPow": 9,
+      "includeEnd": true,
+      "includeZero": true
+    };
+    let val = this.labels;
+    
+    switch (index) {
+    case 0:
+      val = ResistorLabels.getE12SeriesShorthand(params);
+      break;
+    case 1:
+      val = ResistorLabels.getE12SeriesDecimalPlain(params);
+      break;
+    case 2:
+      val = ResistorLabels.AMAZON_PACK;
+      break;
+    }
+    return val;
+  }
+  
+  setQuickPick() {
+    let val = this.quickPickIndexToArray(this.quickFill.selectedIndex);
+    if (val != this.labels) {
+      this.labels = val;
+      this.labelsWidget.value = JSON.stringify(val);
+      //const newNode = document.createTextNode(JSON.stringify(val));
+      //this.labelsWidget.replaceChild(newNode, this.labelsWidget.firstChild);
+      this.applyEditorValues();
+    }
   }
 
   getEditor(tag) {
@@ -737,14 +761,30 @@ class ResistorLabels extends Labels {
     this.widthWidget.addEventListener("input", updateSvg);
     
     this.heightWidget = Labels.createFloatInput(this.height, 0);
+    this.heightWidget.addEventListener("input", updateSvg);
+
     this.labelWidthWidget = Labels.createFloatInput(this.labelWidth, 0);
+    this.labelWidthWidget.addEventListener("input", updateSvg);
+
     this.labelHeightWidget = Labels.createFloatInput(this.labelHeight, 0);
+    this.labelHeightWidget.addEventListener("input", updateSvg);
+
     this.resistorShowWidget = Labels.createCheckBox(this.resistorShow, 0);
+    this.resistorShowWidget.addEventListener("change", updateSvg);
+
     this.resistorBandsWidget = Labels.createIntegerInput(this.resistorBands, 3, 3, 5);
+    this.resistorBandsWidget.addEventListener("input", updateSvg);
+
     this.resistorWidthWidget = Labels.createFloatInput(this.resistorWidth, 0);
+    this.resistorWidthWidget.addEventListener("input", updateSvg);
+
     this.resistorHeightWidget = Labels.createFloatInput(this.resistorHeight, 0);
+    this.resistorHeightWidget.addEventListener("input", updateSvg);
 
     this.quickFill = Labels.createSelect(ResistorLabels.quickFills);
+    this.quickFill.addEventListener("change", function() {
+      self.setQuickPick();
+    });
     
     tbody.appendChild(Labels.createInputRow([
       "Total Width (mm)", this.widthWidget,
@@ -782,6 +822,7 @@ class ResistorLabels extends Labels {
     this.labelsWidget.rows = 8;
     this.labelsWidget.cols = 50;
     this.editor.appendChild(this.labelsWidget);
+    this.labelsWidget.addEventListener("change", updateSvg);
 
     this.applyEditorValues();
     return this.editor;
