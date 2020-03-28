@@ -30,10 +30,189 @@ class Labels {
     }
     return val;
   }
+
+  static createElement(type, textContent, className) {
+    const widget = document.createElement(type);
+    if (textContent !== undefined) {
+      widget.appendChild(document.createTextNode(textContent.toString()));
+    }
+    widget.classList.add((className == undefined) ? "Labels" : className);
+    return widget;
+  }
+
+  static createCheckBox(defVal) {
+    const widget = Labels.createElement("input");
+    widget.type = "checkbox";
+    widget.checked = (defVal == true);
+    return widget;
+  }
+
+  static createFloatInput(defVal, minVal, maxVal) {
+    const widget = Labels.createElement("input");
+    if (defVal != undefined) {
+      widget.value = defVal;
+    }
+    widget.type = "number";
+    widget.min = parseInt(minVal);
+    widget.max = parseInt(maxVal);
+
+    if (isNaN(widget.min)) {
+      widget.min = Number.MIN_VALUE;
+    }
+    if (isNaN(widget.max)) {
+      widget.max = Number.MAX_VALUE;
+    }
+
+    widget.addEventListener("input", function() {
+      const strVal = widget.value;
+      let good = !isNaN(strVal);
+      if (good) {
+        let val = parseFloat(strVal);
+        // If min/max is NaN (not set), comparison returns false
+        if (val < widget.min || val > widget.max) {
+          good = false;
+        }
+      }
+      if (good) {
+        widget.classList.remove("bad");
+      } else {
+        widget.classList.add("bad");
+      }
+    });
+    return widget;
+  }
+
+  static createIntegerInput(defVal, minVal, maxVal) {
+    const widget = Labels.createElement("input");
+    if (defVal != undefined) {
+      widget.value = defVal;
+    }
+    widget.type = "number";
+    widget._MinVal = parseInt(minVal);
+    widget._MaxVal = parseInt(maxVal);
+
+    if (isNaN(widget._MinVal)) {
+      widget._MinVal = Number.MIN_SAFE_INTEGER;
+    }
+    if (isNaN(widget._MaxVal)) {
+      widget._MaxVal = Number.MIN_SAFE_INTEGER;
+    }
+
+    widget.addEventListener("input", function() {
+      const strVal = widget.value;
+      let good = !isNaN(strVal);
+      if (good) {
+        let val = parseFloat(strVal);
+        good = Number.isInteger(parseFloat);
+        // If min/max is NaN (not set), comparison returns false
+        if (val < widget._MinVal || val > widget._MaxVal) {
+          good = false;
+        }
+      }
+      if (good) {
+        widget.classList.remove("bad");
+      } else {
+        widget.classList.add("bad");
+      }
+    });
+    return widget;
+  }
+
+  static createInputRow(fields) {
+    const tr = Labels.createElement("tr");
+    for (let i = 0; i < fields.length; i++) {
+      let field = fields[i];
+      if ("object" == typeof field) {
+        let td = Labels.createElement("td", undefined, "Input");
+        tr.appendChild(td);
+        td.appendChild(field);
+      } else {
+        let th = Labels.createElement("th", field.toString());
+        tr.appendChild(th);
+      }
+    }
+    return tr;
+  }
+
+  static createSelect(labels) {
+    const select = Labels.createElement("select");
+    for (let i in labels) {
+      let label = labels[i];
+      const opt = Labels.createElement("option", label.toString());
+      select.appendChild(opt);
+    }
+    return select;
+  }
 }
 
-class ResistorLabels {
+class QuickFill {
+  constructor(label, choices) {
+    this.label = label;
+    this.choices = choices;
+  }
+
+  toString() {
+    return this.label;
+  }
+
+  getChoices() {
+    return this.choices;
+  }
+
+  static getByLabel(label, qfa) {
+    for (let i in qfa) {
+      let label = qfa[i];
+      if (label == qf.toString()) {
+        return qf;
+      }
+      return null;
+    }
+  }
+}
+
+class ResistorLabels extends Labels {
+
+  static AMAZON_PACK = [
+    // Miscellaneous
+    "dRd", "ddR", "dddR", "dKd", "ddK", "dddK", "dMd", "ddM", "", "",
+    "0R", // SMD only
+    "1R", "4R7", "7R5", "", "", "", "", "", "",
+    // "22R", "39R", "47R", "68R", // SMD only
+    "10R", "18R", "24R", "30R", "36R", "43R", "51R", "62R", "75R", "91R",
+    // "", "", "", "", "", "", "", "",
+    // "100R", "150R", "220R", "330R", "680R", // SMD only
+    "120R", "270R", "300R", "390R", "470R", "510R", "620R", "750R", "", "",
+    // "1K8", "3K3", "3K9", "4K7", "5K6", // SMD only
+    "1K", "1K5", "2K2", "3K", "3K6", "4K3", "5K1", "6K8", "8K2", "",
+    // "12K", "22K", "33K", "39K", "47K", "56K", "68K", // SMD only
+    "10K", "15K", "20K", "30K", "36K", "43K", "51K", "62K", "75K", "",
+    // "120K", "180K", "220K", "270K", "330K", "390K", "470K", "560K", "680K", // SMD only
+    "100K", "150K", "200K", "240K", "300K", "360K", "430K", "510K", "620K", "750K",
+    // "2.2M", "3.3M", "4.7M", "10M", // SMD only
+    "1M", "", "", "", "", "", "", "", "", ""
+  ];
+
+/*
+  static quickFills = [
+    new QuickFill("E12 Shorthand", ResistorLabels.getE12SeriesShorthand({
+      "precision": this.resistorBands,
+      "startPow": 0,
+      "endPow": 9,
+      "includeEnd": true,
+      "includeZero": true
+    })),
+    new QuickFill("Amazon Pack", );
+  ];
+*/
+  
+  static quickFills = [
+    "E12 Shorthand",
+    "E12 Decimal",
+    "Amazon Pack"
+  ];
+
   constructor() {
+    super();
     /** Width of entire draw area in mm. */
     this.width = 182;
     /** Height of entire draw area in mm. */
@@ -47,12 +226,18 @@ class ResistorLabels {
 
     /** Set to true to wrap around and fill entire area. */
     this.fill = true;
-    
-    /** Set to value larger than 0 draw resitor colors above labels.
+
+    /** Set to true to draw resitor with colored bands above label.
      * NOTE: If you set this to true, it only works if your on lables
      * having the form: "I[.I]E" or "IEI" (like: 2.2K, 120R, 4K7,
      * 20.0M). */
-    this.showResistor = 2;
+    this.resistorShow = true;
+    
+    /** The number of bands to draw in the resistor.
+     * NOTE: If you set this to true, it only works if your on lables
+     * having the form: "I[.I]E" or "IEI" (like: 2.2K, 120R, 4K7,
+     * 20.0M). */
+    this.resistorBands = 3;
 
     /** Total width of resistor image in mm (if drawn). */
     this.resistorWidth = 12;
@@ -61,6 +246,9 @@ class ResistorLabels {
 
     /** The text to appear on labels. Duplicates will appear as needed
      * to fill the entire draw area. */
+    this.labels = ResistorLabels.AMAZON_PACK;
+
+/*    
     this.labels = [
       // Miscellaneous
       "dRd", "ddR", "dddR", "dKd", "ddK", "dddK", "dMd", "ddM", "", "",
@@ -80,9 +268,10 @@ class ResistorLabels {
       // "2.2M", "3.3M", "4.7M", "10M", // SMD only
       "1M", "", "", "", "", "", "", "", "", ""
     ];
+*/
     /*
     this.labels = ResistorLabels.getE12SeriesShorthand({
-      "precision": this.showResistor,
+      "precision": this.resistorBands,
       "startPow": 0,
       "endPow": 9,
       "includeEnd": true,
@@ -142,7 +331,7 @@ class ResistorLabels {
     let label = labels[0];
     let rvalLabeled = rval;
     
-    for (var i = 1; (i < labels.length) && (rvalLabeled >= 1000); i++) {
+    for (let i = 1; (i < labels.length) && (rvalLabeled >= 1000); i++) {
       label = labels[i];
       rvalLabeled /= 1000.0;
     }
@@ -152,10 +341,10 @@ class ResistorLabels {
     let formattedVal = "";
     let needsDecimalPt = false;
     
-    for (var i = 0; i < precision; i++) {
+    for (let i = 0; i < precision; i++) {
       if (needsDecimalPt) {
         let allZero = true;
-        for (var j = i; j < precision; j++) {
+        for (let j = i; j < precision; j++) {
           if (rvalStr.charAt(j) != "0") {
             allZero = false;
             break;
@@ -182,7 +371,7 @@ class ResistorLabels {
     let label = labels[0];
     let rvalLabeled = rval;
     
-    for (var i = 1; (i < labels.length) && (rvalLabeled >= 1000); i++) {
+    for (let i = 1; (i < labels.length) && (rvalLabeled >= 1000); i++) {
       label = labels[i];
       rvalLabeled /= 1000.0;
     }
@@ -378,7 +567,7 @@ class ResistorLabels {
     let lh = this.labelHeight;
     const rval = ResistorLabels.getResistorValue(labelText);
     const rvalValid = !isNaN(rval);
-    const drawResistor = (this.showResistor > 0) && rvalValid;
+    const drawResistor = this.resistorShow && rvalValid;
     
     let g = drawing.appendElement("g", {
       "transform": "translate(" + xofs + ", " + yofs + ")"
@@ -405,7 +594,7 @@ class ResistorLabels {
     g.appendChild(text);
 
     if (drawResistor) {
-      let rindexes = ResistorLabels.getResistorIndexes(rval, this.showResistor);
+      let rindexes = ResistorLabels.getResistorIndexes(rval, this.resistorBands - 1);
       let rw = this.resistorWidth;
       let rh = this.resistorHeight;
       let xofs = ((lw - rw) / 2);
@@ -492,7 +681,7 @@ class ResistorLabels {
   createWidget() {
     let w = this.width;
     let h = this.height;
-    var drawing = new NstSvg({
+    let drawing = new NstSvg({
       // Following allows us to set initial dimensions and drawing space
       width: w + "mm",
       height: h + "mm",
@@ -506,5 +695,95 @@ class ResistorLabels {
 
     this.addLabels(drawing);
     return drawing.getWidget();
+  }
+
+  applyEditorValues() {
+    let editor = this.getEditor();
+
+    this.width = parseFloat(this.widthWidget.value);
+    this.height = parseFloat(this.heightWidget.value);
+    this.labelWidth = parseFloat(this.labelWidthWidget.value);
+    this.labelHeight = parseFloat(this.labelHeightWidget.value);
+    
+    const list = editor.childNodes;
+    for (let i = list.length - 1; i > 1; i--) {
+      editor.removeChild(list[i]);
+    }
+
+    editor.appendChild(this.createWidget());
+  }
+
+  getEditor(tag) {
+    if (this.editor != undefined) {
+      return this.editor;
+    }
+    const div = Labels.createElement("div");
+    this.editor = div;
+    this.editor.id = tag;
+    
+    const table = Labels.createElement("table");
+    table.classList.add("noprint");
+    div.appendChild(table);
+
+    const tbody = Labels.createElement("tbody");
+    table.appendChild(tbody);
+
+    const self = this;
+    const updateSvg = function() {
+      self.applyEditorValues();
+    }
+    
+    this.widthWidget = Labels.createFloatInput(this.width, 0);
+    this.widthWidget.addEventListener("input", updateSvg);
+    
+    this.heightWidget = Labels.createFloatInput(this.height, 0);
+    this.labelWidthWidget = Labels.createFloatInput(this.labelWidth, 0);
+    this.labelHeightWidget = Labels.createFloatInput(this.labelHeight, 0);
+    this.resistorShowWidget = Labels.createCheckBox(this.resistorShow, 0);
+    this.resistorBandsWidget = Labels.createIntegerInput(this.resistorBands, 3, 3, 5);
+    this.resistorWidthWidget = Labels.createFloatInput(this.resistorWidth, 0);
+    this.resistorHeightWidget = Labels.createFloatInput(this.resistorHeight, 0);
+
+    this.quickFill = Labels.createSelect(ResistorLabels.quickFills);
+    
+    tbody.appendChild(Labels.createInputRow([
+      "Total Width (mm)", this.widthWidget,
+      "Total Height (mm)", this.heightWidget
+    ]));
+
+    tbody.appendChild(Labels.createInputRow([
+      "Label Width (mm)", this.labelWidthWidget,
+      "Label Height (mm)", this.labelHeightWidget
+    ]));
+
+    tbody.appendChild(Labels.createInputRow([
+      "Show Resistor", this.resistorShowWidget,
+      "Resistor Bands", this.resistorBandsWidget
+    ]));
+
+    tbody.appendChild(Labels.createInputRow([
+      "Resistor Width (mm)", this.resistorWidthWidget,
+      "Resistor Height (mm)", this.resistorHeightWidget
+    ]));
+
+    tbody.appendChild(Labels.createInputRow([
+      "Quick Sets", this.quickFill
+    ]));
+
+    let defLabels = ResistorLabels.getE12SeriesShorthand({
+      "precision": this.resistorBands,
+      "startPow": 0,
+      "endPow": 9,
+      "includeEnd": true,
+      "includeZero": true
+    });
+    this.labelsWidget = Labels.createElement("textarea", JSON.stringify(defLabels));
+    this.labelsWidget.classList.add("noprint");
+    this.labelsWidget.rows = 8;
+    this.labelsWidget.cols = 50;
+    this.editor.appendChild(this.labelsWidget);
+
+    this.applyEditorValues();
+    return this.editor;
   }
 }

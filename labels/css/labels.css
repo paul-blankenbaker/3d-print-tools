@@ -1,5 +1,35 @@
+.bad {
+    color: #a00000;
+}
+
+input.Labels {
+    text-align: right;
+    margin-left: 4px;
+}
+
+textarea.Labels {
+    display: block;
+}
+
+input.Labels[type=number] {
+    width: 5em;
+}
+
+table.Labels {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+th.Labels {
+    text-align: right;
+}
+
+td.Input {
+    text-align: left;
+}
+
 @media print {
     .noprint {
-        display: none;
+        display: none !important;
     }
 }

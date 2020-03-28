@@ -3,9 +3,9 @@
   <head><title>Resistor Labels</title></head>
   <script src="javascript/NstSvg.js"></script>
   <script src="javascript/ResistorLabels.js"></script>
-  <link href="css/labels.css">
-  <body onload="var labels = new ResistorLabels(); document.getElementById('labels').appendChild(labels.createWidget());">
-    <h1>Resistor Labels</h1>
+  <link rel="stylesheet" href="css/labels.css" type="text/css"></link>
+  <body onload="var labels = new ResistorLabels(); document.getElementById('labels').appendChild(labels.getEditor());">
+    <h1 class="noprint">Resistor Labels</h1>
     <div id="labels"></div>
   </body>
 </html>
